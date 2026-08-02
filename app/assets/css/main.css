@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme static {
+    --font-sans: "DM Sans", sans-serif;
+    --font-serif: "Bebas Neue", "Georgia";
+}
+
+:root {
+    --ui-radius: 0.125rem;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------
+	Custom Scrollbar
+ ------------------------ */
+/* Modern browsers — Chrome 121+, Edge 121+, Firefox, Safari 18.2+ */
+* {
+    scrollbar-color: var(--color-primary-600) var(--color-neutral-800);
+    scrollbar-width: thin;
+    scroll-padding-block-start: 0px;
+    scroll-margin-block-start: 0px;
+    scrollbar-arrow-color: transparent;
+}
+
+/* Legacy WebKit — older Chrome/Edge/Safari, radius, borders & shadows */
+*::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+}
+
+*::-webkit-scrollbar-track {
+    border-radius: 0px;
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 0px;
+    min-height: 40px;
+}
+
+*::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* ------------------------
+	Custom Classes
+ ------------------------ */
+.nowrap {
+    text-wrap-mode: nowrap;
+}

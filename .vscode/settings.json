@@ -1,0 +1,25 @@
+{
+    // ------------------------
+    //        OXC
+    // ------------------------
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+        "source.format.oxc": "always",
+        "source.fixAll.oxc": "always",
+        "source.fixAll.eslint": "explicit",
+        "source.organizeImports": "never"
+    },
+    "oxc.enable": true,
+    "oxc.lint.run": "onType",
+    "eslint.enable": false,
+    "prettier.enable": false,
+    "[json]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
+    "[vue]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode",
+        "editor.formatOnSave": true,
+    },
+}
