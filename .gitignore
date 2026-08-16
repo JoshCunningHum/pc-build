@@ -22,3 +22,10 @@ logs
 .env
 .env.*
 !.env.example
+
+# Raw pc-part-dataset export (input to scripts/dataset/convert.py)
+app/imported
+
+# Agent tooling (kept out of the repo)
+CLAUDE.md
+.claude
