@@ -31,7 +31,13 @@ const activeStore = computed(() => SPECS_STORES[selectedType.value]());
 // UTable needs one `T` shared by `data` and `columns`, but the category is only known at
 // runtime -- widening to the union of every specs shape is where that erasure has to happen.
 const allRows = computed(() => activeStore.value.list as SpecsRow[]);
-const columns = computed(() => DATABASE_COLUMNS[selectedType.value] as TableColumn<SpecsRow>[]);
+
+// The actions column is appended here rather than living in DATABASE_COLUMNS: its handlers are
+// page state, which a constants module has no access to.
+const columns = computed<TableColumn<SpecsRow>[]>(() => [
+	...(DATABASE_COLUMNS[selectedType.value] as TableColumn<SpecsRow>[]),
+	{ id: 'actions', header: '', enableSorting: false },
+]);
 
 const filterMatchesCategory = computed(() => filter.value.part === selectedType.value);
 
@@ -43,6 +49,16 @@ const rows = computed(() => {
 
 const initialLoad = computed(() => partTypes.some((type) => SPECS_STORES[type]().loading));
 const loadError = computed(() => partTypes.map((type) => SPECS_STORES[type]().error).find(Boolean));
+
+const creating = ref(false);
+const editing = ref<SpecsRow>();
+const deleting = ref<SpecsRow>();
+
+function confirmDelete(): void {
+	if (!deleting.value) return;
+	activeStore.value.remove(deleting.value.name);
+	deleting.value = undefined;
+}
 </script>
 
 <template>
@@ -64,7 +80,12 @@ const loadError = computed(() => partTypes.map((type) => SPECS_STORES[type]().er
 			</div>
 		</aside>
 		<div class="flex flex-col flex-1 gap-3 p-4 min-w-0">
-			<PartFilters :part="selectedType" @change="filter = $event" />
+			<div class="flex justify-between items-start gap-4">
+				<PartFilters :part="selectedType" @change="filter = $event" />
+				<UButton icon="i-lucide-plus" class="shrink-0" @click="creating = true">
+					Add {{ PART_TYPE_META[selectedType].label }}
+				</UButton>
+			</div>
 			<p class="text-muted text-xs">
 				{{ rows.length.toLocaleString() }} of {{ allRows.length.toLocaleString() }}
 				{{ PART_TYPE_META[selectedType].label }} specs
@@ -76,7 +97,56 @@ const loadError = computed(() => partTypes.map((type) => SPECS_STORES[type]().er
 				virtualize
 				sticky="header"
 				class="flex-1 min-h-0"
-			/>
+				:ui="{ tr: 'group', td: 'py-1.5' }"
+			>
+				<template #actions-cell="{ row }">
+					<div
+						class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
+					>
+						<UButton
+							icon="i-lucide-pencil"
+							color="neutral"
+							variant="ghost"
+							size="xs"
+							:aria-label="`Edit ${row.original.name}`"
+							@click="editing = row.original"
+						/>
+						<UButton
+							icon="i-lucide-trash-2"
+							color="error"
+							variant="ghost"
+							size="xs"
+							:aria-label="`Delete ${row.original.name}`"
+							@click="deleting = row.original"
+						/>
+					</div>
+				</template>
+			</UTable>
 		</div>
+
+		<PartDialogCreatePartDialog v-model:open="creating" :type="selectedType" />
+
+		<PartDialogEditPartDialog
+			v-if="editing"
+			:key="editing.name"
+			:type="selectedType"
+			:part="editing"
+			:open="true"
+			@update:open="editing = undefined"
+		/>
+
+		<UModal
+			:open="!!deleting"
+			title="Delete spec"
+			:description="`Remove “${deleting?.name}” from the ${PART_TYPE_META[selectedType].label} catalog? This also hides it if it came pre-seeded.`"
+			@update:open="deleting = undefined"
+		>
+			<template #footer>
+				<div class="flex justify-end gap-2 w-full">
+					<UButton color="neutral" variant="ghost" @click="deleting = undefined">Cancel</UButton>
+					<UButton color="error" @click="confirmDelete">Delete</UButton>
+				</div>
+			</template>
+		</UModal>
 	</div>
 </template>

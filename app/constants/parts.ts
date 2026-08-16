@@ -1,4 +1,5 @@
 import type { Builds } from '~/types/build';
+import type { SpecsRow } from '~/types/parts';
 import { useCaseStore } from '~/stores/case';
 import { useCpuStore } from '~/stores/cpu';
 import { useCpuCoolerStore } from '~/stores/cpu-cooler';
@@ -19,10 +20,20 @@ export const PART_TYPE_META: Record<Builds.PartType, { label: string; icon: stri
 	psu: { label: 'Power Supply', icon: 'lucide:plug-zap' },
 };
 
-export const SPECS_STORES: Record<
-	Builds.PartType,
-	() => { list: unknown[]; loading: boolean; error: unknown }
-> = {
+// Method shorthand, not property syntax: bivariant parameters are what let each store's
+// concretely-typed `upsert(spec: Specs.CPU)` satisfy the union-erased signature here.
+export interface SpecsStore {
+	list: SpecsRow[];
+	loading: boolean;
+	error: unknown;
+	getByName(name: string): SpecsRow | undefined;
+	isOverridden(name: string): boolean;
+	upsert(spec: SpecsRow): void;
+	remove(name: string): void;
+	rename(oldName: string, spec: SpecsRow): void;
+}
+
+export const SPECS_STORES: Record<Builds.PartType, () => SpecsStore> = {
 	cpu: useCpuStore,
 	cooler: useCpuCoolerStore,
 	motherboard: useMotherboardStore,

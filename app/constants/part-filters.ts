@@ -241,16 +241,20 @@ export function filterFieldsFor(part: Builds.PartType): ErasedFilterField[] {
 	return PART_FILTER_FIELDS[part] as unknown as ErasedFilterField[];
 }
 
-export function filterOptionsFor(field: ErasedFilterField, rows: SpecsRow[]): string[] {
+export function distinctStrings<TRow>(rows: TRow[], get: (row: TRow) => unknown): string[] {
 	const options = new Set<string>();
 	for (const row of rows) {
-		const value = field.get(row);
+		const value = get(row);
 		if (typeof value === 'string') options.add(value);
 		else if (Array.isArray(value)) {
 			for (const entry of value) if (typeof entry === 'string') options.add(entry);
 		}
 	}
 	return [...options].toSorted((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+export function filterOptionsFor(field: ErasedFilterField, rows: SpecsRow[]): string[] {
+	return distinctStrings(rows, field.get);
 }
 
 export function isFilterActive(filter: AnyPartFilter): boolean {
