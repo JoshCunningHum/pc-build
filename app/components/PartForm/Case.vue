@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { Specs } from '~/types/parts';
+import { distinctStrings } from '~/constants/part-filters';
 import { specItems } from '~/constants/spec-labels';
-import { useConstantsStore } from '~/stores/constants';
+import { useCaseStore } from '~/stores/case';
 
 const draft = defineModel<Partial<Specs.Case>>({ required: true });
 
-const constants = useConstantsStore();
+const store = useCaseStore();
+const colors = computed(() => distinctStrings(store.list, (row) => row.color));
+const sidePanels = computed(() => distinctStrings(store.list, (row) => row.side_panel));
 </script>
 
 <template>
@@ -21,7 +24,7 @@ const constants = useConstantsStore();
 			v-model="draft.side_panel"
 			label="Side panel"
 			name="side_panel"
-			:options="constants.labels('side_panel')"
+			:options="sidePanels"
 		/>
 		<SpecNumber
 			v-model="draft.max_gpu_length"
@@ -37,11 +40,6 @@ const constants = useConstantsStore();
 			unit="L"
 		/>
 		<SpecNumber v-model="draft.psu" label="Included PSU" name="psu" unit="W" />
-		<SpecCombobox
-			v-model="draft.color"
-			label="Color"
-			name="color"
-			:options="constants.labels('color')"
-		/>
+		<SpecCombobox v-model="draft.color" label="Color" name="color" :options="colors" />
 	</div>
 </template>

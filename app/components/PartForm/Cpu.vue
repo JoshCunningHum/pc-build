@@ -9,7 +9,14 @@ const constants = useConstantsStore();
 const socketName = computed({
 	get: () => draft.value.socket?.name || undefined,
 	set: (name) => {
-		draft.value.socket = { name: name ?? '', brand: draft.value.socket?.brand };
+		if (!name) {
+			draft.value.socket = { name: '' };
+			return;
+		}
+		// Brand rides along from the configured socket, falling back to whatever the spec already
+		// carried when the socket isn't one of the configured ones.
+		const brand = constants.brandOf('socket', name) ?? draft.value.socket?.brand;
+		draft.value.socket = brand ? { name, brand } : { name };
 	},
 });
 </script>

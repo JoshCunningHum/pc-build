@@ -8,8 +8,13 @@ export interface ConstantEntry {
 	label: string;
 	/** What actually gets stored on a spec. Equal to `label` for the plain string lists. */
 	value: string | number;
+	/** Sockets only -- the manufacturer shown beside the name. */
+	brand?: string;
 }
 
+// Only the values the build validator and the comparator reason about. Open-ended descriptive
+// fields (chipset, colors, storage type/interface/form factor, side panels) are deliberately
+// absent -- their inputs suggest from the catalog instead of from a curated list.
 export type ConstantId =
 	| 'form_factor'
 	| 'efficiency'
@@ -17,19 +22,15 @@ export type ConstantId =
 	| 'ddr'
 	| 'socket'
 	| 'microarchitecture'
-	| 'chipset'
-	| 'storage_type'
-	| 'storage_form_factor'
-	| 'storage_interface'
-	| 'psu_type'
-	| 'side_panel'
-	| 'color';
+	| 'psu_type';
 
 export interface ConstantMeta {
 	id: ConstantId;
 	title: string;
 	description: string;
 	orderable: boolean;
+	/** Renders a second input in the add row, and shows the value beside each entry. */
+	secondary?: { label: string; placeholder: string };
 }
 
 export const CONSTANT_META: ConstantMeta[] = [
@@ -61,8 +62,10 @@ export const CONSTANT_META: ConstantMeta[] = [
 	{
 		id: 'socket',
 		title: 'CPU sockets',
-		description: 'Suggested when setting the socket of a CPU, motherboard or cooler.',
+		description:
+			'Matched between CPU, motherboard and cooler when validating a build. The brand is carried onto any spec that picks the socket.',
 		orderable: false,
+		secondary: { label: 'Brand', placeholder: 'Brand' },
 	},
 	{
 		id: 'microarchitecture',
@@ -71,45 +74,9 @@ export const CONSTANT_META: ConstantMeta[] = [
 		orderable: false,
 	},
 	{
-		id: 'chipset',
-		title: 'Video card chipsets',
-		description: 'Suggested when setting a video card chipset.',
-		orderable: false,
-	},
-	{
-		id: 'storage_type',
-		title: 'Storage types',
-		description: 'SSD, HDD, and anything else worth recording.',
-		orderable: false,
-	},
-	{
-		id: 'storage_form_factor',
-		title: 'Storage form factors',
-		description: 'M.2, 2.5", and the rest.',
-		orderable: false,
-	},
-	{
-		id: 'storage_interface',
-		title: 'Storage interfaces',
-		description: 'SATA, the NVMe PCIe variants, and so on.',
-		orderable: false,
-	},
-	{
 		id: 'psu_type',
 		title: 'Power supply types',
 		description: 'ATX, SFX, TFX and other chassis standards.',
-		orderable: false,
-	},
-	{
-		id: 'side_panel',
-		title: 'Case side panels',
-		description: 'What a case’s side panel is made of.',
-		orderable: false,
-	},
-	{
-		id: 'color',
-		title: 'Colors',
-		description: 'Shared by every part type that records a color.',
 		orderable: false,
 	},
 ];
@@ -121,13 +88,7 @@ const EMPTY: Record<ConstantId, ConstantEntry[]> = {
 	ddr: [],
 	socket: [],
 	microarchitecture: [],
-	chipset: [],
-	storage_type: [],
-	storage_form_factor: [],
-	storage_interface: [],
 	psu_type: [],
-	side_panel: [],
-	color: [],
 };
 
 // Seeded entries keep the ordinals already written into every spec row, so widening these
@@ -171,49 +132,27 @@ export const useConstantsStore = defineStore('constants', () => {
 
 	const seeded = ref(false);
 
-	function fromCatalog(id: ConstantId): ConstantEntry[] {
-		const strings = (): string[] => {
-			switch (id) {
-				case 'socket':
-					return distinctStrings(
-						[
-							...rowsOf('cpu').map((row) => row.socket.name),
-							...rowsOf('motherboard').map((row) => row.socket.name),
-							...rowsOf('cooler').flatMap((row) => row.sockets.map((s) => s.name)),
-						],
-						(value) => value,
-					);
-				case 'microarchitecture':
-					return distinctStrings(rowsOf('cpu'), (row) => row.microarchitecture);
-				case 'chipset':
-					return distinctStrings(rowsOf('video_card'), (row) => row.chipset);
-				case 'storage_type':
-					return distinctStrings(rowsOf('storage'), (row) => row.type);
-				case 'storage_form_factor':
-					return distinctStrings(rowsOf('storage'), (row) => row.form_factor);
-				case 'storage_interface':
-					return distinctStrings(rowsOf('storage'), (row) => row.interface);
-				case 'psu_type':
-					return distinctStrings(rowsOf('psu'), (row) => row.type);
-				case 'side_panel':
-					return distinctStrings(rowsOf('case'), (row) => row.side_panel);
-				case 'color':
-					return distinctStrings(
-						[
-							...rowsOf('cooler').map((row) => row.color),
-							...rowsOf('motherboard').map((row) => row.color),
-							...rowsOf('memory').map((row) => row.color),
-							...rowsOf('video_card').map((row) => row.color),
-							...rowsOf('case').map((row) => row.color),
-							...rowsOf('psu').map((row) => row.color),
-						],
-						(value) => value,
-					);
-				default:
-					return [];
-			}
-		};
+	function socketsFromCatalog(): ConstantEntry[] {
+		const byName = new Map<string, string | undefined>();
+		const seen = [
+			...rowsOf('cpu').map((row) => row.socket),
+			...rowsOf('motherboard').map((row) => row.socket),
+			...rowsOf('cooler').flatMap((row) => row.sockets),
+		];
 
+		// First brand seen wins -- the seed data is consistent, but a later blank shouldn't
+		// erase a brand an earlier row supplied.
+		for (const socket of seen) {
+			if (!byName.has(socket.name) || (byName.get(socket.name) === undefined && socket.brand))
+				byName.set(socket.name, socket.brand);
+		}
+
+		return [...byName.entries()]
+			.map(([name, brand]) => ({ label: name, value: name, brand }))
+			.toSorted((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+	}
+
+	function fromCatalog(id: ConstantId): ConstantEntry[] {
 		switch (id) {
 			case 'form_factor':
 				return structuredClone(SEEDED_FORM_FACTORS);
@@ -223,8 +162,18 @@ export const useConstantsStore = defineStore('constants', () => {
 				return structuredClone(SEEDED_PCIE);
 			case 'ddr':
 				return structuredClone(SEEDED_DDR);
-			default:
-				return strings().map((label) => ({ label, value: label }));
+			case 'socket':
+				return socketsFromCatalog();
+			case 'microarchitecture':
+				return distinctStrings(rowsOf('cpu'), (row) => row.microarchitecture).map((label) => ({
+					label,
+					value: label,
+				}));
+			case 'psu_type':
+				return distinctStrings(rowsOf('psu'), (row) => row.type).map((label) => ({
+					label,
+					value: label,
+				}));
 		}
 	}
 
@@ -271,15 +220,24 @@ export const useConstantsStore = defineStore('constants', () => {
 		return entries.value[id].findIndex((entry) => entry.value === value);
 	}
 
-	function add(id: ConstantId, label: string): boolean {
+	function add(id: ConstantId, label: string, brand?: string): boolean {
 		const trimmed = label.trim();
 		if (trimmed === '') return false;
 
 		const stored = entries.value[id];
 		if (stored.some((entry) => entry.label.toLowerCase() === trimmed.toLowerCase())) return false;
 
-		stored.push({ label: trimmed, value: nextValue(id, trimmed) });
+		const trimmedBrand = brand?.trim();
+		stored.push({
+			label: trimmed,
+			value: nextValue(id, trimmed),
+			...(trimmedBrand ? { brand: trimmedBrand } : {}),
+		});
 		return true;
+	}
+
+	function brandOf(id: ConstantId, value: string | number | undefined): string | undefined {
+		return entries.value[id].find((entry) => entry.value === value)?.brand;
 	}
 
 	function nextValue(id: ConstantId, label: string): string | number {
@@ -325,6 +283,7 @@ export const useConstantsStore = defineStore('constants', () => {
 		list,
 		labels,
 		labelOf,
+		brandOf,
 		rank,
 		add,
 		remove,

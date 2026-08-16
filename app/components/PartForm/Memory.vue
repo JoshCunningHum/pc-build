@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { Specs } from '~/types/parts';
+import { distinctStrings } from '~/constants/part-filters';
 import { specItems } from '~/constants/spec-labels';
-import { useConstantsStore } from '~/stores/constants';
+import { useMemoryStore } from '~/stores/memory';
 
 const draft = defineModel<Partial<Specs.Memory>>({ required: true });
 
-const constants = useConstantsStore();
+const store = useMemoryStore();
+const colors = computed(() => distinctStrings(store.list, (row) => row.color));
 </script>
 
 <template>
@@ -22,11 +24,6 @@ const constants = useConstantsStore();
 			name="first_word_latency"
 			unit="ns"
 		/>
-		<SpecCombobox
-			v-model="draft.color"
-			label="Color"
-			name="color"
-			:options="constants.labels('color')"
-		/>
+		<SpecCombobox v-model="draft.color" label="Color" name="color" :options="colors" />
 	</div>
 </template>

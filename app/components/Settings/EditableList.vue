@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import type { ConstantEntry } from '~/stores/constants';
+import type { ConstantEntry, ConstantMeta } from '~/stores/constants';
 
 const props = defineProps<{
 	items: ConstantEntry[];
 	orderable?: boolean;
+	secondary?: ConstantMeta['secondary'];
 	placeholder?: string;
 }>();
 
 const emit = defineEmits<{
-	add: [label: string];
+	add: [label: string, secondary: string | undefined];
 	remove: [value: string | number];
 	move: [value: string | number, delta: number];
 }>();
 
 const pending = ref('');
+const pendingSecondary = ref('');
 const rejected = ref(false);
 
 function commit(): void {
@@ -25,8 +27,9 @@ function commit(): void {
 		return;
 	}
 
-	emit('add', label);
+	emit('add', label, pendingSecondary.value.trim() || undefined);
 	pending.value = '';
+	pendingSecondary.value = '';
 	rejected.value = false;
 }
 
@@ -38,7 +41,7 @@ watch(pending, () => {
 <template>
 	<div class="max-w-2xl">
 		<ul
-			class="border-default bg-elevated/30 last:border-b-0 border rounded-sm max-h-72 overflow-y-auto divide-default divide-y"
+			class="border-default bg-elevated/30 border rounded-sm max-h-72 overflow-y-auto divide-default divide-y"
 		>
 			<li
 				v-for="(item, index) in items"
@@ -46,6 +49,10 @@ watch(pending, () => {
 				class="group flex items-center gap-2 px-3 py-1.5"
 			>
 				<span class="flex-1 text-highlighted text-sm truncate">{{ item.label }}</span>
+
+				<span v-if="secondary" class="text-muted text-xs shrink-0">
+					{{ item.brand ?? '—' }}
+				</span>
 
 				<span
 					class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
@@ -82,7 +89,32 @@ watch(pending, () => {
 			</li>
 
 			<li class="px-3 py-1.5">
+				<UButtonGroup v-if="secondary" size="sm" class="w-full">
+					<UInput
+						v-model="pending"
+						:placeholder="placeholder ?? 'Add item…'"
+						class="flex-1"
+						@keydown.enter.prevent="commit"
+					/>
+					<UInput
+						v-model="pendingSecondary"
+						:placeholder="secondary.placeholder"
+						class="w-40"
+						@keydown.enter.prevent="commit"
+					/>
+					<UButton
+						icon="i-lucide-plus"
+						color="neutral"
+						variant="subtle"
+						:disabled="pending.trim() === ''"
+						@click="commit"
+					>
+						Add
+					</UButton>
+				</UButtonGroup>
+
 				<UInput
+					v-else
 					v-model="pending"
 					:placeholder="placeholder ?? 'Add item…'"
 					variant="none"

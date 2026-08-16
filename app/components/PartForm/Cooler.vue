@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import type { Specs } from '~/types/parts';
+import { distinctStrings } from '~/constants/part-filters';
 import { useConstantsStore } from '~/stores/constants';
+import { useCpuCoolerStore } from '~/stores/cpu-cooler';
 
 const draft = defineModel<Partial<Specs.CPUCooler>>({ required: true });
 
 const constants = useConstantsStore();
+const store = useCpuCoolerStore();
+const colors = computed(() => distinctStrings(store.list, (row) => row.color));
 
 const socketNames = computed({
 	get: () => (draft.value.sockets ?? []).map((socket) => socket.name),
 	set: (names) => {
-		const existing = new Map((draft.value.sockets ?? []).map((s) => [s.name, s]));
-		draft.value.sockets = names.map((name) => existing.get(name) ?? { name });
+		draft.value.sockets = names.map((name) => {
+			const brand = constants.brandOf('socket', name);
+			return brand ? { name, brand } : { name };
+		});
 	},
 });
 </script>
@@ -27,12 +33,7 @@ const socketNames = computed({
 		/>
 		<SpecRange v-model="draft.rpm" label="RPM" name="rpm" />
 		<SpecRange v-model="draft.noise_level" label="Noise" name="noise_level" unit="dBA" />
-		<SpecCombobox
-			v-model="draft.color"
-			label="Color"
-			name="color"
-			:options="constants.labels('color')"
-		/>
+		<SpecCombobox v-model="draft.color" label="Color" name="color" :options="colors" />
 		<SpecNumber v-model="draft.size" label="Radiator size" name="size" unit="mm" />
 	</div>
 </template>

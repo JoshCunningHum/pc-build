@@ -22,7 +22,8 @@ onMounted(() => constants.seedWhenLoaded());
 			<SettingsEditableList
 				:items="constants.list(meta.id)"
 				:orderable="meta.orderable"
-				@add="constants.add(meta.id, $event)"
+				:secondary="meta.secondary"
+				@add="(label, secondary) => constants.add(meta.id, label, secondary)"
 				@remove="constants.remove(meta.id, $event)"
 				@move="(value, delta) => constants.move(meta.id, value, delta)"
 			/>
