@@ -1,10 +1,11 @@
+import type { ConstantId } from '~/stores/constants';
 import type { Builds } from '~/types/build';
-import { EFFICIENCY_LABELS, FORM_FACTOR_LABELS } from '~/constants/spec-labels';
+import { specLabel } from '~/constants/spec-labels';
 
-const ENUM_LABELS: Partial<Record<Builds.PartType, Record<string, Record<number, string>>>> = {
-	motherboard: { form_factor: FORM_FACTOR_LABELS },
-	case: { type: FORM_FACTOR_LABELS },
-	psu: { efficiency: EFFICIENCY_LABELS },
+const CONSTANT_BACKED: Partial<Record<Builds.PartType, Record<string, ConstantId>>> = {
+	motherboard: { form_factor: 'form_factor' },
+	case: { type: 'form_factor' },
+	psu: { efficiency: 'efficiency' },
 };
 
 // JSON round-trip, not structuredClone: specs come off the store as Vue reactive proxies,
@@ -22,8 +23,8 @@ export function humanizeKey(key: string): string {
 export function formatSpecValue(part: Builds.PartType, key: string, value: unknown): string {
 	if (value === undefined || value === null || value === '') return '—';
 
-	const labels = ENUM_LABELS[part]?.[key];
-	if (labels && typeof value === 'number') return labels[value] ?? String(value);
+	const constant = CONSTANT_BACKED[part]?.[key];
+	if (constant && typeof value === 'number') return specLabel(constant, value);
 
 	if (typeof value === 'boolean') return value ? 'Yes' : 'No';
 

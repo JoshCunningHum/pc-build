@@ -61,6 +61,28 @@ export function createSpecsStore<T extends Named>(
 			upsert(spec);
 		}
 
-		return { list, loading, error, getByName, isOverridden, upsert, remove, rename };
+		// Only seed names are restorable: a tombstoned user addition has no version to fall back
+		// to, so it is simply gone.
+		const deletedSeedNames = computed(() => {
+			const seedNames = new Set(seed.value.map((item) => item.name));
+			return deleted.value.filter((name) => seedNames.has(name));
+		});
+
+		function restore(name: string): void {
+			deleted.value = deleted.value.filter((entry) => entry !== name);
+		}
+
+		return {
+			list,
+			loading,
+			error,
+			deletedSeedNames,
+			getByName,
+			isOverridden,
+			upsert,
+			remove,
+			rename,
+			restore,
+		};
 	});
 }

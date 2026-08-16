@@ -1,21 +1,28 @@
 import type { Builds } from '~/types/build';
+import type { ConstantId } from '~/stores/constants';
 import type { SpecsByPartType } from '~/types/parts';
-import { Specs } from '~/types/parts';
+import { useConstantsStore } from '~/stores/constants';
 
 type PartDefaults = { [K in Builds.PartType]: () => Partial<SpecsByPartType[K]> };
+
+// Newest configured generation, not a hardcoded member -- these lists are user-owned now.
+// Ranked-but-required fields (form factor, efficiency) are deliberately left unset so the
+// user picks one rather than inheriting an arbitrary default.
+function newest(id: ConstantId): string | number | undefined {
+	return useConstantsStore().list(id).at(-1)?.value;
+}
 
 export const PART_DEFAULTS: PartDefaults = {
 	cpu: () => ({ socket: { name: '' } }),
 	cooler: () => ({ sockets: [] }),
 	motherboard: () => ({
 		socket: { name: '' },
-		ddr: 'DDR5',
-		pcie: 5,
-		form_factor: Specs.MotherboardFormFactor.ATX,
+		ddr: newest('ddr') as string | undefined,
+		pcie: newest('pcie') as number | undefined,
 	}),
-	memory: () => ({ ddr: 'DDR5' }),
+	memory: () => ({ ddr: newest('ddr') as string | undefined }),
 	storage: () => ({}),
-	video_card: () => ({ pcie: 5 }),
-	case: () => ({ type: Specs.MotherboardFormFactor.ATX, internal_35_bays: 0 }),
-	psu: () => ({ efficiency: Specs.PowerSupplyEfficiency.Standard, modular: false }),
+	video_card: () => ({ pcie: newest('pcie') as number | undefined }),
+	case: () => ({ internal_35_bays: 0 }),
+	psu: () => ({ modular: false }),
 };

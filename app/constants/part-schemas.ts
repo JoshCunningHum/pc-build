@@ -1,14 +1,25 @@
+import type { ConstantId } from '~/stores/constants';
 import type { Builds } from '~/types/build';
 import * as z from 'zod';
-import { Specs } from '~/types/parts';
+import { useConstantsStore } from '~/stores/constants';
 
 const name = z.string().trim().min(1, 'Name is required');
 const positive = z.number({ error: 'Required' }).positive('Must be greater than 0');
 const optionalPositive = positive.optional();
 const optionalText = z.string().trim().min(1).optional();
 
-const ddr = z.enum(['DDR2', 'DDR3', 'DDR4', 'DDR5']);
-const pcie = z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]);
+// These five fields are user-configurable on the Settings page, so the schema can't hold a
+// literal union -- it checks membership of whatever is currently configured instead.
+function configured(id: ConstantId, message: string) {
+	return z
+		.union([z.string(), z.number()])
+		.refine((value) => useConstantsStore().rank(id, value) !== -1, { error: message });
+}
+
+const ddr = configured('ddr', 'Pick a configured memory generation');
+const pcie = configured('pcie', 'Pick a configured PCIe generation');
+const formFactor = configured('form_factor', 'Pick a configured form factor');
+const efficiency = configured('efficiency', 'Pick a configured efficiency tier');
 const maybeRange = z.union([positive, z.tuple([positive, positive])]);
 const socket = z.object({
 	name: z.string().trim().min(1, 'Socket is required'),
@@ -40,7 +51,7 @@ export const PART_SCHEMAS = {
 		socket,
 		ddr: ddr.optional(),
 		pcie: pcie.optional(),
-		form_factor: z.enum(Specs.MotherboardFormFactor),
+		form_factor: formFactor,
 		max_memory: positive,
 		memory_slots: positive.int(),
 		color: optionalText,
@@ -76,7 +87,7 @@ export const PART_SCHEMAS = {
 	}),
 	case: z.object({
 		name,
-		type: z.enum(Specs.MotherboardFormFactor),
+		type: formFactor,
 		color: optionalText,
 		psu: optionalPositive,
 		side_panel: optionalText,
@@ -87,7 +98,7 @@ export const PART_SCHEMAS = {
 	psu: z.object({
 		name,
 		type: z.string().trim().min(1, 'Type is required'),
-		efficiency: z.enum(Specs.PowerSupplyEfficiency),
+		efficiency,
 		wattage: positive,
 		modular: z.union([z.string().trim().min(1), z.literal(false)]),
 		color: optionalText,

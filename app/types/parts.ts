@@ -3,8 +3,13 @@ import type { Builds } from './build';
 export namespace Specs {
 	type MaybeRange = number | [number, number];
 
-	export type DDRVersion = 'DDR2' | 'DDR3' | 'DDR4' | 'DDR5';
-	export type PCIeVersion = 2 | 3 | 4 | 5 | 6;
+	// Open, not literal unions: the Settings page lets these lists be extended, so a stored
+	// value can be anything the user configured. The enums below stay as the named source of
+	// the seeded ordinals -- existing rows keep resolving through them.
+	export type DDRVersion = string;
+	export type PCIeVersion = number;
+	export type FormFactor = number;
+	export type Efficiency = number;
 
 	export enum MotherboardFormFactor {
 		MiniITX,
@@ -53,7 +58,7 @@ export namespace Specs {
 		socket: CPUSocket;
 		ddr?: DDRVersion;
 		pcie?: PCIeVersion;
-		form_factor: MotherboardFormFactor;
+		form_factor: FormFactor;
 		max_memory: number;
 		memory_slots: number;
 		color?: string;
@@ -93,7 +98,7 @@ export namespace Specs {
 
 	export interface Case {
 		name: string;
-		type: MotherboardFormFactor;
+		type: FormFactor;
 		color?: string;
 		psu?: number;
 		side_panel?: string;
@@ -105,7 +110,7 @@ export namespace Specs {
 	export interface PowerSupply {
 		name: string;
 		type: string;
-		efficiency: PowerSupplyEfficiency;
+		efficiency: Efficiency;
 		wattage: number;
 		modular: string | false;
 		color?: string;

@@ -2,7 +2,7 @@ import type { Column, RowData } from '@tanstack/vue-table';
 import type { TableColumn } from '@nuxt/ui';
 import type { Builds } from '~/types/build';
 import type { Specs, SpecsByPartType } from '~/types/parts';
-import { EFFICIENCY_LABELS, FORM_FACTOR_LABELS } from '~/constants/spec-labels';
+import { specLabel } from '~/constants/spec-labels';
 import { UIcon } from '#components';
 
 // `HeaderContext` is invariant in `TData`; asking for only these two members makes one
@@ -108,7 +108,7 @@ const motherboardColumns: TableColumn<Specs.Motherboard>[] = [
 	{
 		accessorKey: 'form_factor',
 		header: sortableHeader('Form factor'),
-		cell: ({ row }) => FORM_FACTOR_LABELS[row.original.form_factor],
+		cell: ({ row }) => specLabel('form_factor', row.original.form_factor),
 	},
 	{ accessorKey: 'max_memory', header: sortableHeader('Max memory (GB)') },
 	{ accessorKey: 'memory_slots', header: sortableHeader('Memory slots') },
@@ -175,7 +175,7 @@ const caseColumns: TableColumn<Specs.Case>[] = [
 	{
 		accessorKey: 'type',
 		header: sortableHeader('Max form factor'),
-		cell: ({ row }) => FORM_FACTOR_LABELS[row.original.type],
+		cell: ({ row }) => specLabel('form_factor', row.original.type),
 	},
 	{ accessorKey: 'internal_35_bays', header: sortableHeader('3.5" bays') },
 	{
@@ -212,7 +212,7 @@ const powerSupplyColumns: TableColumn<Specs.PowerSupply>[] = [
 	{
 		accessorKey: 'efficiency',
 		header: sortableHeader('Efficiency'),
-		cell: ({ row }) => EFFICIENCY_LABELS[row.original.efficiency],
+		cell: ({ row }) => specLabel('efficiency', row.original.efficiency),
 	},
 	{
 		accessorKey: 'modular',

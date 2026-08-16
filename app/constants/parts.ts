@@ -26,7 +26,9 @@ export interface SpecsStore {
 	list: SpecsRow[];
 	loading: boolean;
 	error: unknown;
+	deletedSeedNames: string[];
 	getByName(name: string): SpecsRow | undefined;
+	restore(name: string): void;
 	isOverridden(name: string): boolean;
 	upsert(spec: SpecsRow): void;
 	remove(name: string): void;

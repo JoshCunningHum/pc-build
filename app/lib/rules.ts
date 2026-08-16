@@ -1,14 +1,14 @@
+import type { ConstantId } from '~/stores/constants';
 import type { Builds } from '~/types/build';
-import { Specs } from '~/types/parts';
 import type { RuleItem } from '~/types/rules';
+import { specLabel } from '~/constants/spec-labels';
+import { useConstantsStore } from '~/stores/constants';
 import { createIssue, createRule } from '~/utils/build-validation';
 
-const FORM_FACTOR_LABELS: Record<Specs.MotherboardFormFactor, string> = {
-	[Specs.MotherboardFormFactor.MiniITX]: 'Mini ITX',
-	[Specs.MotherboardFormFactor.MicroATX]: 'Micro ATX',
-	[Specs.MotherboardFormFactor.ATX]: 'ATX',
-	[Specs.MotherboardFormFactor.EATX]: 'EATX',
-};
+/** Position in the configured list. `-1` means the value isn't configured at all. */
+function rank(id: ConstantId, value: string | number | undefined): number {
+	return useConstantsStore().rank(id, value);
+}
 
 export const BUILD_RULES: RuleItem<Builds.PartType>[] = [
 	createRule({
@@ -78,11 +78,39 @@ export const BUILD_RULES: RuleItem<Builds.PartType>[] = [
 	createRule({
 		parts: ['motherboard', 'case'],
 		rule({ build: { motherboard, case: pcCase }, issue }) {
-			if (motherboard.form_factor > pcCase.type)
+			const board = rank('form_factor', motherboard.form_factor);
+			const chassis = rank('form_factor', pcCase.type);
+
+			// An unconfigured value has no position to compare against, so the fit check can't
+			// run -- say so rather than silently passing or failing the build.
+			if (board === -1 || chassis === -1) {
+				const unknown =
+					board === -1
+						? `${motherboard.name} (form factor ${motherboard.form_factor})`
+						: `${pcCase.name} (form factor ${pcCase.type})`;
+				return issue(
+					'warning',
+					'FORM_FACTOR_UNKNOWN',
+					`${unknown} uses a form factor that is not in your configured constants, so case fit could not be checked`,
+				);
+			}
+
+			if (board > chassis)
 				return issue(
 					'warning',
 					'CASE_FORM_FACTOR',
-					`${motherboard.name} (${FORM_FACTOR_LABELS[motherboard.form_factor]}) may not fit in ${pcCase.name} (${FORM_FACTOR_LABELS[pcCase.type]})`,
+					`${motherboard.name} (${specLabel('form_factor', motherboard.form_factor)}) may not fit in ${pcCase.name} (${specLabel('form_factor', pcCase.type)})`,
+				);
+		},
+	}),
+	createRule({
+		parts: ['psu'],
+		rule({ build: { psu }, issue }) {
+			if (rank('efficiency', psu.efficiency) === -1)
+				return issue(
+					'warning',
+					'EFFICIENCY_UNKNOWN',
+					`${psu.name} uses efficiency tier ${psu.efficiency}, which is not in your configured constants; tier comparisons may be wrong`,
 				);
 		},
 	}),

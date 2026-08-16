@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import type { Specs } from '~/types/parts';
-import { distinctStrings } from '~/constants/part-filters';
-import { DDR_ITEMS, FORM_FACTOR_ITEMS, PCIE_ITEMS } from '~/constants/spec-labels';
-import { useMotherboardStore } from '~/stores/motherboard';
+import { specItems } from '~/constants/spec-labels';
+import { useConstantsStore } from '~/stores/constants';
 
 const draft = defineModel<Partial<Specs.Motherboard>>({ required: true });
 
-const store = useMotherboardStore();
-const sockets = computed(() => distinctStrings(store.list, (row) => row.socket.name));
-const colors = computed(() => distinctStrings(store.list, (row) => row.color));
+const constants = useConstantsStore();
 
 const socketName = computed({
 	get: () => draft.value.socket?.name || undefined,
@@ -21,17 +18,27 @@ const socketName = computed({
 <template>
 	<div class="gap-4 grid grid-cols-2">
 		<SpecText v-model="draft.name" label="Name" name="name" class="col-span-2" />
-		<SpecCombobox v-model="socketName" label="Socket" name="socket.name" :options="sockets" />
+		<SpecCombobox
+			v-model="socketName"
+			label="Socket"
+			name="socket.name"
+			:options="constants.labels('socket')"
+		/>
 		<SpecSelect
 			v-model="draft.form_factor"
 			label="Form factor"
 			name="form_factor"
-			:items="FORM_FACTOR_ITEMS"
+			:items="specItems('form_factor')"
 		/>
-		<SpecSelect v-model="draft.ddr" label="DDR" name="ddr" :items="DDR_ITEMS" />
-		<SpecSelect v-model="draft.pcie" label="PCIe" name="pcie" :items="PCIE_ITEMS" />
+		<SpecSelect v-model="draft.ddr" label="DDR" name="ddr" :items="specItems('ddr')" />
+		<SpecSelect v-model="draft.pcie" label="PCIe" name="pcie" :items="specItems('pcie')" />
 		<SpecNumber v-model="draft.max_memory" label="Max memory" name="max_memory" unit="GB" />
 		<SpecNumber v-model="draft.memory_slots" label="Memory slots" name="memory_slots" />
-		<SpecCombobox v-model="draft.color" label="Color" name="color" :options="colors" />
+		<SpecCombobox
+			v-model="draft.color"
+			label="Color"
+			name="color"
+			:options="constants.labels('color')"
+		/>
 	</div>
 </template>

@@ -1,6 +1,6 @@
 import type { Builds } from '~/types/build';
 import type { SpecsByPartType, SpecsRow } from '~/types/parts';
-import { EFFICIENCY_LABELS, FORM_FACTOR_LABELS } from '~/constants/spec-labels';
+import { specLabel } from '~/constants/spec-labels';
 
 export interface PartFilterValues {
 	cpu: {
@@ -146,7 +146,7 @@ export const PART_FILTER_FIELDS: {
 			kind: 'select',
 			key: 'formFactor',
 			label: 'Form factor',
-			get: (row) => FORM_FACTOR_LABELS[row.form_factor],
+			get: (row) => specLabel('form_factor', row.form_factor),
 		},
 		{ kind: 'min', key: 'minMemorySlots', label: 'Min slots', get: (row) => row.memory_slots },
 		{
@@ -196,7 +196,7 @@ export const PART_FILTER_FIELDS: {
 			kind: 'select',
 			key: 'maxFormFactor',
 			label: 'Max form factor',
-			get: (row) => FORM_FACTOR_LABELS[row.type],
+			get: (row) => specLabel('form_factor', row.type),
 		},
 		{ kind: 'select', key: 'sidePanel', label: 'Side panel', get: (row) => row.side_panel },
 		{
@@ -215,7 +215,7 @@ export const PART_FILTER_FIELDS: {
 			kind: 'select',
 			key: 'efficiency',
 			label: 'Efficiency',
-			get: (row) => EFFICIENCY_LABELS[row.efficiency],
+			get: (row) => specLabel('efficiency', row.efficiency),
 		},
 		{
 			kind: 'select',

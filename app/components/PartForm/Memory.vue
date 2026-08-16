@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import type { Specs } from '~/types/parts';
-import { distinctStrings } from '~/constants/part-filters';
-import { DDR_ITEMS } from '~/constants/spec-labels';
-import { useMemoryStore } from '~/stores/memory';
+import { specItems } from '~/constants/spec-labels';
+import { useConstantsStore } from '~/stores/constants';
 
 const draft = defineModel<Partial<Specs.Memory>>({ required: true });
 
-const store = useMemoryStore();
-const colors = computed(() => distinctStrings(store.list, (row) => row.color));
+const constants = useConstantsStore();
 </script>
 
 <template>
 	<div class="gap-4 grid grid-cols-2">
 		<SpecText v-model="draft.name" label="Name" name="name" class="col-span-2" />
-		<SpecSelect v-model="draft.ddr" label="DDR" name="ddr" :items="DDR_ITEMS" />
+		<SpecSelect v-model="draft.ddr" label="DDR" name="ddr" :items="specItems('ddr')" />
 		<SpecNumber v-model="draft.speed" label="Speed" name="speed" unit="MT/s" />
 		<SpecNumber v-model="draft.module_count" label="Modules" name="module_count" />
 		<SpecNumber v-model="draft.module_size" label="Size per module" name="module_size" unit="GB" />
@@ -24,6 +22,11 @@ const colors = computed(() => distinctStrings(store.list, (row) => row.color));
 			name="first_word_latency"
 			unit="ns"
 		/>
-		<SpecCombobox v-model="draft.color" label="Color" name="color" :options="colors" />
+		<SpecCombobox
+			v-model="draft.color"
+			label="Color"
+			name="color"
+			:options="constants.labels('color')"
+		/>
 	</div>
 </template>

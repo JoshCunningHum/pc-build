@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import type { Specs } from '~/types/parts';
-import { distinctStrings } from '~/constants/part-filters';
-import { FORM_FACTOR_ITEMS } from '~/constants/spec-labels';
-import { useCaseStore } from '~/stores/case';
+import { specItems } from '~/constants/spec-labels';
+import { useConstantsStore } from '~/stores/constants';
 
 const draft = defineModel<Partial<Specs.Case>>({ required: true });
 
-const store = useCaseStore();
-const colors = computed(() => distinctStrings(store.list, (row) => row.color));
-const sidePanels = computed(() => distinctStrings(store.list, (row) => row.side_panel));
+const constants = useConstantsStore();
 </script>
 
 <template>
@@ -18,13 +15,13 @@ const sidePanels = computed(() => distinctStrings(store.list, (row) => row.side_
 			v-model="draft.type"
 			label="Max form factor"
 			name="type"
-			:items="FORM_FACTOR_ITEMS"
+			:items="specItems('form_factor')"
 		/>
 		<SpecCombobox
 			v-model="draft.side_panel"
 			label="Side panel"
 			name="side_panel"
-			:options="sidePanels"
+			:options="constants.labels('side_panel')"
 		/>
 		<SpecNumber
 			v-model="draft.max_gpu_length"
@@ -40,6 +37,11 @@ const sidePanels = computed(() => distinctStrings(store.list, (row) => row.side_
 			unit="L"
 		/>
 		<SpecNumber v-model="draft.psu" label="Included PSU" name="psu" unit="W" />
-		<SpecCombobox v-model="draft.color" label="Color" name="color" :options="colors" />
+		<SpecCombobox
+			v-model="draft.color"
+			label="Color"
+			name="color"
+			:options="constants.labels('color')"
+		/>
 	</div>
 </template>
