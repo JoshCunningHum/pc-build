@@ -24,6 +24,7 @@ onMounted(() => constants.seedWhenLoaded());
 				:orderable="meta.orderable"
 				:secondary="meta.secondary"
 				@add="(label, secondary) => constants.add(meta.id, label, secondary)"
+				@update="(value, label, secondary) => constants.update(meta.id, value, label, secondary)"
 				@remove="constants.remove(meta.id, $event)"
 				@move="(value, delta) => constants.move(meta.id, value, delta)"
 			/>

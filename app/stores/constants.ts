@@ -240,6 +240,34 @@ export const useConstantsStore = defineStore('constants', () => {
 		return entries.value[id].find((entry) => entry.value === value)?.brand;
 	}
 
+	function update(id: ConstantId, value: string | number, label: string, brand?: string): boolean {
+		const trimmed = label.trim();
+		if (trimmed === '') return false;
+
+		const stored = entries.value[id];
+		const index = stored.findIndex((entry) => entry.value === value);
+		const current = stored[index];
+		if (!current) return false;
+
+		const clashes = stored.some(
+			(entry, at) => at !== index && entry.label.toLowerCase() === trimmed.toLowerCase(),
+		);
+		if (clashes) return false;
+
+		// Label-keyed lists (sockets, microarchitectures, PSU types) store the label itself, so
+		// renaming has to carry the value along. Ranked lists key on a fixed ordinal that specs
+		// already reference -- there the label is display-only and the value must not move.
+		const keyedByLabel = current.value === current.label;
+		const trimmedBrand = brand?.trim();
+
+		stored[index] = {
+			label: trimmed,
+			value: keyedByLabel ? trimmed : current.value,
+			...(trimmedBrand ? { brand: trimmedBrand } : {}),
+		};
+		return true;
+	}
+
 	function nextValue(id: ConstantId, label: string): string | number {
 		if (id === 'ddr' || !CONSTANT_META.find((entry) => entry.id === id)?.orderable) return label;
 
@@ -286,6 +314,7 @@ export const useConstantsStore = defineStore('constants', () => {
 		brandOf,
 		rank,
 		add,
+		update,
 		remove,
 		move,
 		reset,
