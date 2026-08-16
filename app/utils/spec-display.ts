@@ -8,13 +8,6 @@ const CONSTANT_BACKED: Partial<Record<Builds.PartType, Record<string, ConstantId
 	psu: { efficiency: 'efficiency' },
 };
 
-// JSON round-trip, not structuredClone: specs come off the store as Vue reactive proxies,
-// which structuredClone rejects with a DataCloneError. Specs are pure JSON anyway, and
-// dropping `undefined` keys on the way through is what the form wants.
-export function cloneSpec<T>(spec: T): T {
-	return JSON.parse(JSON.stringify(spec)) as T;
-}
-
 export function humanizeKey(key: string): string {
 	const words = key.replaceAll('_', ' ');
 	return words.charAt(0).toUpperCase() + words.slice(1);

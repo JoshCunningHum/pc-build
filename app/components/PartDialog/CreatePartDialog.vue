@@ -32,7 +32,7 @@ const presetSpecs = computed(() =>
 // can't share a name anyway.
 function applyPreset(): void {
 	if (!preset.value) return;
-	const { name: _name, ...specs } = cloneSpec(preset.value) as Record<string, unknown>;
+	const { name: _name, ...specs } = deepClone(preset.value) as Record<string, unknown>;
 	draft.value = { ...draft.value, ...specs };
 }
 

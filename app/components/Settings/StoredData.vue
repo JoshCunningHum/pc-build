@@ -2,6 +2,8 @@
 import type { Builds } from '~/types/build';
 import { PART_TYPE_META, SPECS_STORES } from '~/constants/parts';
 
+const draft = useSettingsDraft();
+
 const partTypes = Object.keys(PART_TYPE_META) as Builds.PartType[];
 
 const deletedByType = computed(() =>
@@ -13,10 +15,6 @@ const deletedByType = computed(() =>
 const deletedCount = computed(() =>
 	deletedByType.value.reduce((sum, group) => sum + group.names.length, 0),
 );
-
-function restore(type: Builds.PartType, name: string): void {
-	SPECS_STORES[type]().restore(name);
-}
 </script>
 
 <template>
@@ -40,13 +38,32 @@ function restore(type: Builds.PartType, name: string): void {
 							:key="name"
 							class="flex justify-between items-center gap-3 px-3 py-1.5"
 						>
-							<span class="text-highlighted text-sm truncate">{{ name }}</span>
+							<span
+								class="text-sm truncate"
+								:class="
+									draft.isQueued(group.type, name) ? 'text-muted line-through' : 'text-highlighted'
+								"
+							>
+								{{ name }}
+							</span>
+
 							<UButton
+								v-if="draft.isQueued(group.type, name)"
+								icon="i-lucide-rotate-ccw"
+								color="neutral"
+								variant="ghost"
+								size="xs"
+								@click="draft.unqueueRestore(group.type, name)"
+							>
+								Undo
+							</UButton>
+							<UButton
+								v-else
 								icon="i-lucide-undo-2"
 								color="neutral"
 								variant="ghost"
 								size="xs"
-								@click="restore(group.type, name)"
+								@click="draft.queueRestore(group.type, name)"
 							>
 								Restore
 							</UButton>

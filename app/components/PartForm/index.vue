@@ -33,7 +33,7 @@ const form = useTemplateRef<Form<Partial<SpecsByPartType[T]>>>('form');
 
 function reset(): void {
 	draft.value = props.part
-		? (cloneSpec(props.part) as Partial<SpecsByPartType[T]>)
+		? (deepClone(props.part) as Partial<SpecsByPartType[T]>)
 		: (PART_DEFAULTS[props.type]() as Partial<SpecsByPartType[T]>);
 }
 

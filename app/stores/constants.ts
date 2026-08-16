@@ -2,6 +2,7 @@ import type { Builds } from '~/types/build';
 import type { SpecsByPartType } from '~/types/parts';
 import { distinctStrings } from '~/constants/part-filters';
 import { SPECS_STORES } from '~/constants/parts';
+import { sortedEntries } from '~/utils/constant-entries';
 import { Specs } from '~/types/parts';
 
 export interface ConstantEntry {
@@ -199,12 +200,7 @@ export const useConstantsStore = defineStore('constants', () => {
 	}
 
 	function list(id: ConstantId): ConstantEntry[] {
-		const stored = entries.value[id];
-		const meta = CONSTANT_META.find((entry) => entry.id === id);
-		if (meta?.orderable) return stored;
-		return [...stored].toSorted((a, b) =>
-			a.label.localeCompare(b.label, undefined, { numeric: true }),
-		);
+		return sortedEntries(id, entries.value[id]);
 	}
 
 	function labels(id: ConstantId): string[] {
@@ -215,92 +211,23 @@ export const useConstantsStore = defineStore('constants', () => {
 		return entries.value[id].find((entry) => entry.value === value)?.label;
 	}
 
+	function brandOf(id: ConstantId, value: string | number | undefined): string | undefined {
+		return entries.value[id].find((entry) => entry.value === value)?.brand;
+	}
+
 	/** Position in the configured order — what the compatibility rules compare. */
 	function rank(id: ConstantId, value: string | number | undefined): number {
 		return entries.value[id].findIndex((entry) => entry.value === value);
 	}
 
-	function add(id: ConstantId, label: string, brand?: string): boolean {
-		const trimmed = label.trim();
-		if (trimmed === '') return false;
-
-		const stored = entries.value[id];
-		if (stored.some((entry) => entry.label.toLowerCase() === trimmed.toLowerCase())) return false;
-
-		const trimmedBrand = brand?.trim();
-		stored.push({
-			label: trimmed,
-			value: nextValue(id, trimmed),
-			...(trimmedBrand ? { brand: trimmedBrand } : {}),
-		});
-		return true;
+	// The Settings page is the only writer, and it stages edits in a draft first -- this is
+	// where that draft lands.
+	function replaceAll(next: Record<ConstantId, ConstantEntry[]>): void {
+		entries.value = next;
 	}
 
-	function brandOf(id: ConstantId, value: string | number | undefined): string | undefined {
-		return entries.value[id].find((entry) => entry.value === value)?.brand;
-	}
-
-	function update(id: ConstantId, value: string | number, label: string, brand?: string): boolean {
-		const trimmed = label.trim();
-		if (trimmed === '') return false;
-
-		const stored = entries.value[id];
-		const index = stored.findIndex((entry) => entry.value === value);
-		const current = stored[index];
-		if (!current) return false;
-
-		const clashes = stored.some(
-			(entry, at) => at !== index && entry.label.toLowerCase() === trimmed.toLowerCase(),
-		);
-		if (clashes) return false;
-
-		// Label-keyed lists (sockets, microarchitectures, PSU types) store the label itself, so
-		// renaming has to carry the value along. Ranked lists key on a fixed ordinal that specs
-		// already reference -- there the label is display-only and the value must not move.
-		const keyedByLabel = current.value === current.label;
-		const trimmedBrand = brand?.trim();
-
-		stored[index] = {
-			label: trimmed,
-			value: keyedByLabel ? trimmed : current.value,
-			...(trimmedBrand ? { brand: trimmedBrand } : {}),
-		};
-		return true;
-	}
-
-	function nextValue(id: ConstantId, label: string): string | number {
-		if (id === 'ddr' || !CONSTANT_META.find((entry) => entry.id === id)?.orderable) return label;
-
-		// pcie stores the generation number itself, so honour a numeric label when there is one.
-		const parsed = Number(label.replace(/[^\d.]/g, ''));
-		if (id === 'pcie' && !Number.isNaN(parsed) && parsed > 0) return parsed;
-
-		const highest = entries.value[id].reduce(
-			(max, entry) => (typeof entry.value === 'number' ? Math.max(max, entry.value) : max),
-			-1,
-		);
-		return highest + 1;
-	}
-
-	function remove(id: ConstantId, value: string | number): void {
-		entries.value[id] = entries.value[id].filter((entry) => entry.value !== value);
-	}
-
-	function move(id: ConstantId, value: string | number, delta: number): void {
-		const stored = entries.value[id];
-		const from = stored.findIndex((entry) => entry.value === value);
-		const to = from + delta;
-		if (from === -1 || to < 0 || to >= stored.length) return;
-		const [moved] = stored.splice(from, 1);
-		if (moved) stored.splice(to, 0, moved);
-	}
-
-	function reset(id: ConstantId): void {
-		entries.value[id] = fromCatalog(id);
-	}
-
-	function resetAll(): void {
-		seedFromCatalog(true);
+	function catalogDefaults(id: ConstantId): ConstantEntry[] {
+		return fromCatalog(id);
 	}
 
 	return {
@@ -313,11 +240,7 @@ export const useConstantsStore = defineStore('constants', () => {
 		labelOf,
 		brandOf,
 		rank,
-		add,
-		update,
-		remove,
-		move,
-		reset,
-		resetAll,
+		replaceAll,
+		catalogDefaults,
 	};
 });

@@ -2,6 +2,7 @@
 import { CONSTANT_META, useConstantsStore } from '~/stores/constants';
 
 const constants = useConstantsStore();
+const draft = useSettingsDraft();
 
 onMounted(() => constants.seedWhenLoaded());
 </script>
@@ -20,23 +21,23 @@ onMounted(() => constants.seedWhenLoaded());
 			:description="meta.description"
 		>
 			<SettingsEditableList
-				:items="constants.list(meta.id)"
+				:items="draft.list(meta.id)"
 				:orderable="meta.orderable"
 				:secondary="meta.secondary"
-				@add="(label, secondary) => constants.add(meta.id, label, secondary)"
-				@update="(value, label, secondary) => constants.update(meta.id, value, label, secondary)"
-				@remove="constants.remove(meta.id, $event)"
-				@move="(value, delta) => constants.move(meta.id, value, delta)"
+				@add="(label, secondary) => draft.add(meta.id, label, secondary)"
+				@update="(value, label, secondary) => draft.update(meta.id, value, label, secondary)"
+				@remove="draft.remove(meta.id, $event)"
+				@move="(value, delta) => draft.move(meta.id, value, delta)"
 			/>
 
 			<div class="flex items-center gap-3 mt-2">
-				<span class="text-muted text-xs">{{ constants.list(meta.id).length }} entries</span>
+				<span class="text-muted text-xs">{{ draft.list(meta.id).length }} entries</span>
 				<UButton
 					color="neutral"
 					variant="link"
 					size="xs"
 					class="p-0"
-					@click="constants.reset(meta.id)"
+					@click="draft.resetToCatalog(meta.id)"
 				>
 					Reset to catalog defaults
 				</UButton>
