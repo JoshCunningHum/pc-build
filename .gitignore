@@ -25,6 +25,7 @@ logs
 
 # Raw pc-part-dataset export (input to scripts/dataset/convert.py)
 app/imported
+app/data/imported
 
 # Agent tooling (kept out of the repo)
 CLAUDE.md
