@@ -40,56 +40,62 @@ watch(pending, () => {
 
 <template>
 	<div class="max-w-2xl">
-		<ul
-			class="border-default bg-elevated/30 border rounded-sm max-h-72 overflow-y-auto divide-default divide-y"
-		>
-			<li
-				v-for="(item, index) in items"
-				:key="item.value"
-				class="group flex items-center gap-2 px-3 py-1.5"
-			>
-				<span class="flex-1 text-highlighted text-sm truncate">{{ item.label }}</span>
-
-				<span v-if="secondary" class="text-muted text-xs shrink-0">
-					{{ item.brand ?? '—' }}
-				</span>
-
-				<span
-					class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
+		<!-- The add row is a sibling of the scroll container, not its last child, so it stays put
+		     no matter how long the list gets. -->
+		<div class="bg-elevated/30 border border-default rounded-sm overflow-hidden">
+			<ul class="divide-y divide-default max-h-72 overflow-y-auto">
+				<li
+					v-for="(item, index) in items"
+					:key="item.value"
+					class="group flex items-center gap-2 px-3 py-1.5"
 				>
-					<template v-if="orderable">
-						<UButton
-							icon="i-lucide-arrow-up"
-							color="neutral"
-							variant="ghost"
-							size="xs"
-							:disabled="index === 0"
-							:aria-label="`Move ${item.label} up`"
-							@click="emit('move', item.value, -1)"
-						/>
-						<UButton
-							icon="i-lucide-arrow-down"
-							color="neutral"
-							variant="ghost"
-							size="xs"
-							:disabled="index === items.length - 1"
-							:aria-label="`Move ${item.label} down`"
-							@click="emit('move', item.value, 1)"
-						/>
-					</template>
-					<UButton
-						icon="i-lucide-x"
-						color="error"
-						variant="ghost"
-						size="xs"
-						:aria-label="`Remove ${item.label}`"
-						@click="emit('remove', item.value)"
-					/>
-				</span>
-			</li>
+					<span class="flex-1 text-highlighted text-sm truncate">{{ item.label }}</span>
 
-			<li class="px-3 py-1.5">
-				<UButtonGroup v-if="secondary" size="sm" class="w-full">
+					<span v-if="secondary" class="text-muted text-xs shrink-0">
+						{{ item.brand ?? '—' }}
+					</span>
+
+					<span
+						class="flex items-center gap-0.5 opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity"
+					>
+						<template v-if="orderable">
+							<UButton
+								icon="i-lucide-arrow-up"
+								color="neutral"
+								variant="ghost"
+								size="xs"
+								:disabled="index === 0"
+								:aria-label="`Move ${item.label} up`"
+								@click="emit('move', item.value, -1)"
+							/>
+							<UButton
+								icon="i-lucide-arrow-down"
+								color="neutral"
+								variant="ghost"
+								size="xs"
+								:disabled="index === items.length - 1"
+								:aria-label="`Move ${item.label} down`"
+								@click="emit('move', item.value, 1)"
+							/>
+						</template>
+						<UButton
+							icon="i-lucide-x"
+							color="error"
+							variant="ghost"
+							size="xs"
+							:aria-label="`Remove ${item.label}`"
+							@click="emit('remove', item.value)"
+						/>
+					</span>
+				</li>
+
+				<li v-if="items.length === 0" class="px-3 py-1.5 text-muted text-sm">
+					Nothing configured yet.
+				</li>
+			</ul>
+
+			<div class="bg-default px-3 py-1.5 border-default border-t">
+				<UFieldGroup v-if="secondary" size="sm" class="w-full">
 					<UInput
 						v-model="pending"
 						:placeholder="placeholder ?? 'Add item…'"
@@ -111,7 +117,7 @@ watch(pending, () => {
 					>
 						Add
 					</UButton>
-				</UButtonGroup>
+				</UFieldGroup>
 
 				<UInput
 					v-else
@@ -123,8 +129,8 @@ watch(pending, () => {
 					:ui="{ base: 'px-0' }"
 					@keydown.enter.prevent="commit"
 				/>
-			</li>
-		</ul>
+			</div>
+		</div>
 
 		<p v-if="rejected" class="mt-1 text-error text-xs">“{{ pending }}” is already in this list.</p>
 	</div>
