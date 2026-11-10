@@ -1,7 +1,7 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+await navigateTo('/builds', { replace: true });
+</script>
 
 <template>
-	<div>This is home</div>
+	<div>Redirecting to builds…</div>
 </template>
-
-<style lang="css" scoped></style>
