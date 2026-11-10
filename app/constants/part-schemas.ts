@@ -8,6 +8,24 @@ const positive = z.number({ error: 'Required' }).positive('Must be greater than 
 const optionalPositive = positive.optional();
 const optionalText = z.string().trim().min(1).optional();
 
+const image = z
+	.string()
+	.trim()
+	.refine(
+		(value) => value.startsWith('data:image/') || z.url().safeParse(value).success,
+		'Enter a valid image URL or upload a file',
+	)
+	.optional();
+
+// Parts.Base: what a listing adds on top of the spec it was copied from. Price and link are
+// optional -- a listing missing either is still saved, just flagged as incomplete.
+export const PART_BASE_SCHEMA = z.object({
+	image,
+	title: z.string().trim().min(1, 'Title is required'),
+	link: z.string().trim().url('Enter a valid link').optional(),
+	price: z.number().nonnegative('Price cannot be negative').optional(),
+});
+
 // These five fields are user-configurable on the Settings page, so the schema can't hold a
 // literal union -- it checks membership of whatever is currently configured instead.
 function configured(id: ConstantId, message: string) {

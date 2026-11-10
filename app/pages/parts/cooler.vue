@@ -1,3 +1,3 @@
 <template>
-	<div>CPU Cooler</div>
+	<PartsListingPage type="cooler" />
 </template>

@@ -1,3 +1,3 @@
 <template>
-	<div>Motherboard</div>
+	<PartsListingPage type="motherboard" />
 </template>

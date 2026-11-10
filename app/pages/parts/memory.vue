@@ -1,3 +1,3 @@
 <template>
-	<div>Memory</div>
+	<PartsListingPage type="memory" />
 </template>

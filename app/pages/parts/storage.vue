@@ -1,3 +1,3 @@
 <template>
-	<div>Storage</div>
+	<PartsListingPage type="storage" />
 </template>

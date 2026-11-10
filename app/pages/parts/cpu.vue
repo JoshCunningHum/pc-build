@@ -1,3 +1,3 @@
 <template>
-	<div>CPU</div>
+	<PartsListingPage type="cpu" />
 </template>

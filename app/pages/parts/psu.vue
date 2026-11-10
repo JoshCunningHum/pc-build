@@ -1,3 +1,3 @@
 <template>
-	<div>Power Supply</div>
+	<PartsListingPage type="psu" />
 </template>

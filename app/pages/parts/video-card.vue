@@ -1,3 +1,3 @@
 <template>
-	<div>Video Card</div>
+	<PartsListingPage type="video_card" />
 </template>

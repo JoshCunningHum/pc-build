@@ -1,3 +1,3 @@
 <template>
-	<div>Case</div>
+	<PartsListingPage type="case" />
 </template>
