@@ -1,3 +1,3 @@
 <template>
-	<div>Builds</div>
+	<BuildsWorkspace />
 </template>

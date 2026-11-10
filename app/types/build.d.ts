@@ -11,7 +11,30 @@ export namespace Builds {
 		| 'case'
 		| 'psu';
 
+	// Builds reference Parts listings by their title, scoped to a category. The listing itself
+	// stays the source of truth, so price and spec edits flow into every build that uses it.
+	export interface PartRef {
+		type: PartType;
+		title: string;
+	}
+
 	export interface BuildParts {
+		cpu?: PartRef;
+		cooler?: PartRef;
+		motherboard?: PartRef;
+		memory: PartRef[];
+		storage: PartRef[];
+		video_card?: PartRef;
+		case?: PartRef;
+		psu?: PartRef;
+	}
+
+	export interface Build {
+		name: string;
+		parts: BuildParts;
+	}
+
+	export interface ResolvedParts {
 		cpu?: Parts.CPU;
 		cooler?: Parts.CPUCooler;
 		motherboard?: Parts.Motherboard;
@@ -22,9 +45,10 @@ export namespace Builds {
 		psu?: Parts.PowerSupply;
 	}
 
-	export interface Build {
+	export interface ResolvedBuild {
 		name: string;
-		parts: BuildParts;
+		parts: ResolvedParts;
+		missing: PartRef[];
 	}
 
 	export interface BuildIssue {
