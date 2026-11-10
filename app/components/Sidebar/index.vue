@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { SIDEBAR_ITEMS } from '~/constants/sidebar';
+import { sidebarItems } from '~/constants/sidebar';
+
+const items = computed(() => sidebarItems());
 </script>
 
 <template>
@@ -9,7 +11,7 @@ import { SIDEBAR_ITEMS } from '~/constants/sidebar';
 		</template>
 
 		<template #default="{ collapsed }">
-			<UNavigationMenu :collapsed="collapsed" :items="SIDEBAR_ITEMS" orientation="vertical" />
+			<UNavigationMenu :collapsed="collapsed" :items="items" orientation="vertical" />
 		</template>
 	</UDashboardSidebar>
 </template>
