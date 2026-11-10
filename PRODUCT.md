@@ -45,10 +45,15 @@ can correct one, or add a component the dataset never had.
 ### Layer 2 — Parts (the Parts section)
 
 A **part** is a specific listing you found while shopping. It is a spec _plus_ what it costs you:
-`Part = Spec + { image?, title, link, price }`.
+`Part = Spec + { image?, title, link?, price? }`.
 
 You don't retype the specs. You pick the spec from the Database and attach your own price, link
 and photo to it. Two sellers offering the same CPU are two Parts pointing at one Spec.
+
+Price and source link are optional, because a listing is often captured before you know the final
+price or have a URL for it. A listing missing either is shown as **incomplete**; filling the field
+in later clears the flag. A price of `0` counts as present, and a missing photo never makes a
+listing incomplete.
 
 > Think of the Parts section as your shopping shortlist.
 
@@ -68,30 +73,70 @@ CPU coolers, motherboards, memory, storage, video cards, cases and power supplie
 You can:
 
 - **Browse and sort** any category in a virtualised table.
-- **Filter** by fields that matter for that category — CPU socket and core count, memory speed and
-  CAS latency, case GPU clearance, PSU wattage, and so on.
+- **Filter** by fields that matter for that category — CPU socket and core count, memory speed,
+  DDR, module count, module size and CAS latency, case GPU clearance, PSU wattage, and so on.
 - **Add** a component the dataset doesn't have.
+- **Add a listing** without leaving the Database: the same creation dialog as the Parts pages opens
+  for the selected category, so a spec you just found can be turned into a priced listing straight
+  away.
 - **Edit** any spec, including a pre-seeded one, correcting bad dataset values. When creating, you
-  can start from an existing spec as a preset and adjust it, rather than filling a blank form.
+  can start from an existing spec as a preset and adjust it, rather than filling a blank form. The
+  preset picker carries the same filters as the table, so look-alike RAM kits can be narrowed by
+  DDR generation, module count and size before one is copied.
 - **Delete** any spec, seeded or your own, to keep the catalog to parts you'd actually consider.
 
 Editing a seeded spec doesn't destroy the original — your version is stored as an override on top
 of it, and deletions are reversible from Settings.
 
-### Parts (`/parts/*`) — not built yet
+### Parts (`/parts/*`) — built
 
-Your canvassed listings, one page per category. The intended shape:
+Your canvassed listings, one page per category.
 
-- **Add a listing**: pick the spec from the Database, then supply the price, source link and a
-  photo. A title lets you distinguish "Ryzen 5 5600 — FB Marketplace, Cebu" from another seller's.
-- **Maintain your shortlist**: edit prices as sellers move, delete listings that sell out.
+- **Add a listing**: pick the spec from the Database, then supply a title and the details you
+  found — price, source link and a photo. The spec picker shows a distinguishing descriptor for
+  each row and can be filtered before picking, which matters for RAM where many kits share a name
+  and differ only by DDR version, module count or module size. Price and source link are optional;
+  a listing missing either is flagged **incomplete** until you fill it in. The spec's values are
+  copied onto the listing, so editing the Database later won't rewrite a listing you already
+  recorded.
+- **Maintain your shortlist**: search, edit prices as sellers move, and delete listings that sell
+  out. A title is unique within its category, which is how two listings of the same spec stay
+  separate. The sidebar shows how many listings you have in each category.
 - Parts are the only thing a build can be made of, so this is the bridge between research and
   planning.
 
-### Builds (`/builds`) — not built yet
+### Builds (`/builds`) — built
 
-Assemble Parts into a machine and see, live, whether it works and what it costs. The compatibility
-engine is already written (`lib/rules.ts`); nothing calls it yet. It checks:
+Assemble Parts into a machine and see, live, whether it works and what it costs.
+
+- **A tabbed workspace.** A permanent Builds tab holds the build list. Creating a build opens a
+  closable “Create build” tab; saving turns it into that build's tab. Build tabs are always
+  editable and have an explicit Save button. Open tabs survive a reload.
+- **Live references.** A build stores each part as a `{ type, title }` reference to a Parts listing,
+  not a copy. Editing a listing's price or specs immediately changes every build that uses it.
+  Renaming a listing follows into builds; deleting one leaves a visible **missing listing**
+  warning that can be repaired by picking a replacement.
+- **A visual diagram, not a form.** The build tab draws the machine: a solid case frame around a
+  dashed motherboard, a dashed cooler ring around the CPU,
+  the GPU below, the PSU bottom-left, vertical RAM sticks on the right and storage bays
+  bottom-right. Empty required slots stay visible as dashed placeholders, and RAM/storage grow a
+  stick or bay per listing. The case fills the available page area: the whole page is the machine,
+  with the motherboard, CPU, GPU, PSU, RAM and storage laid out inside it. Hovering any region
+  shows that part's specs and price; clicking it selects or changes the part.
+- **Right rail.** Beside the diagram, the current total and part count sit above a per-category
+  price breakdown (with edit links and remove buttons) and a problems list covering compatibility
+  issues, missing listings, incomplete listings and required categories that are still empty.
+- **Part selection.** One listing per category, except Memory and Storage, which accept multiple
+  listings. Each selected part links to its listing editor in a new browser tab for quick edits.
+  The picker flags listings that would conflict with the current build — _Incompatible_ or
+  _Warning_, with the specific issue in a tooltip — while still letting you choose them.
+- **Totals and completeness.** The total sums the live prices of every resolved listing. Listings
+  missing a price or source link are marked incomplete; missing listings are excluded from the
+  total and counted separately.
+- **Saving.** Build names are unique. Build tabs are editable directly; closing a dirty tab, or
+  leaving the page with unsaved build edits, asks before discarding.
+
+The compatibility engine (`lib/rules.ts`) runs against the resolved parts on every edit. It checks:
 
 | Check                                                                 | Severity |
 | --------------------------------------------------------------------- | -------- |
@@ -109,13 +154,40 @@ engine is already written (`lib/rules.ts`); nothing calls it yet. It checks:
 Errors mean the build cannot physically work. Warnings mean it probably works but something is
 mismatched, undersized or unverifiable.
 
-### Comparison — not built yet
+### Comparison — built (build vs build)
 
-Two flavours:
+Comparison supports two or more builds, both from the build list and from inside a build tab.
 
-- **Build vs build** — aggregate each build's parts and compare totals: price, wattage, capacity.
-  For answering "is the extra ₱8,000 worth it?"
-- **Part vs part** — two components of the same category side by side, spec for spec.
+- **From the build list**, hover actions include a comparison toggle. Once anything is selected,
+  every card's toggle stays visible. At two selected builds a **Compare** button opens a comparison
+  tab.
+- **From a build tab**, the **Compare** button opens a searchable build picker and switches that tab
+  into comparison mode in place. The diagram stays on the left; the right rail becomes the
+  comparison table. The current build stays selected, and **Back to build** returns to the editor
+  with unsaved changes intact. Hovering a region of the diagram shows a compact version of that
+  category's comparison, limited to the selected builds that have the part.
+- **Per-section basis.** Each part category has its own basis, chosen by clicking any value cell in
+  that section. CPU can be based on one build while Memory is based on another. The basis column is
+  tinted dark green; the tint alone marks it, with no extra label.
+- **Percentages share the value cell.** Every numeric field shows its value with the signed delta
+  directly beneath it in the same cell, as a separate line rather than a separate table row. This
+  keeps neighbouring columns from filling with blank cells.
+- **Keyboard basis cycling.** While a category's comparison tooltip is open, **Tab** cycles the
+  basis through the builds that have that part and **Shift + Tab** cycles backwards. The hint sits
+  at the bottom of the tooltip.
+- **Percentages.** Each delta is the signed raw difference from the section basis, coloured green
+  when the value is better and red when it is worse. Lower-is-better fields (price, TDP, latency,
+  wattage, length) show a green negative percentage. Ordinal labels such as PSU efficiency and
+  modularity are coloured but show no percentage, because a percentage of an ordinal is meaningless.
+- **Standalone comparison tabs** show the table only: a diagram belongs to one build, and a
+  comparison is a set of builds.
+- **Multiple listings aggregate.** Memory totals capacity and modules, uses the worst kit's speed
+  and latency, and sums price. Storage sums capacity, drive count and cache; mixed descriptive
+  values display as **Mixed**.
+- **Live.** Comparison resolves builds through the Parts stores, so it always reflects the current
+  listing values. Missing listings show as dashes rather than breaking the table.
+
+Part-vs-part comparison is not implemented. Only build-vs-build comparison exists.
 
 ### Settings (`/settings`) — built
 
@@ -158,9 +230,9 @@ nothing. Leaving the page with unsaved changes asks first.
   effectively delete-then-create.
 - **Your changes layer over the seed, they don't replace it.** Edits are stored as overrides and
   deletions as tombstones, which is why "reset to default" and "restore" are possible at all.
-- **Nothing leaves your browser.** All of it — overrides, deletions, constants, and eventually
-  your parts and builds — lives in `localStorage`. Clearing site data clears everything, and
-  nothing syncs between devices.
+- **Nothing leaves your browser.** All of it — overrides, deletions, constants, parts, builds and
+  open build tabs — lives in `localStorage`. Clearing site data clears everything, and nothing
+  syncs between devices.
 
 ## A worked example
 
@@ -171,7 +243,8 @@ nothing. Leaving the page with unsaved changes asks first.
 4. You do the same for a used B450 board, a 16 GB DDR4 kit and an RX 6600.
 5. In **Builds**, you assemble them. The validator confirms AM4 matches, the DDR4 kit matches the
    board, and warns that your 450 W PSU is close to the estimated draw.
-6. You find a second, cheaper board and add it as another Part, then **compare** the two builds on
-   total price.
+6. You record a second, cheaper board as another Part, swap it into a second build, then **compare**
+   the two builds on total price — and click the CPU and memory cells to choose a different basis
+   for each section.
 7. The seller's listing said "B450M" but the Database has the wrong form factor, so you **edit**
    the spec — and because that's a seeded part, you can revert it later from **Settings**.
