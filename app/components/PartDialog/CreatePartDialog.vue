@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { AnyPartFilter } from '~/constants/part-filters';
 import type { Builds } from '~/types/build';
 import type { SpecsRow } from '~/types/parts';
+import { fuzzyMatch, matchesFilter } from '~/constants/part-filters';
 import { PART_TYPE_META, SPECS_STORES } from '~/constants/parts';
+import { specKey, specOptionLabel } from '~/utils/spec-display';
 
 const props = defineProps<{ type: Builds.PartType }>();
 
@@ -11,12 +14,38 @@ const store = computed(() => SPECS_STORES[props.type]());
 const form = useTemplateRef('form');
 const draft = ref<Record<string, unknown>>({});
 const nameError = ref<string>();
-const presetName = ref<string>();
+const selectedPreset = ref<string>();
+const searchTerm = ref('');
+const presetFilter = ref<AnyPartFilter>({ part: props.type, values: {} });
+const filterKey = ref(0);
 
-const presetNames = computed(() => store.value.list.map((row) => row.name));
-const preset = computed(() =>
-	presetName.value ? store.value.getByName(presetName.value) : undefined,
+const presetRows = computed(() => {
+	const rows = store.value.list as SpecsRow[];
+	if (presetFilter.value.part !== props.type) return rows;
+	return rows.filter((row) => matchesFilter(presetFilter.value, row));
+});
+
+const presetNames = computed(() =>
+	presetRows.value
+		.filter(
+			(row) =>
+				!searchTerm.value.trim() || fuzzyMatch(searchTerm.value, specOptionLabel(props.type, row)),
+		)
+		.map((row) => ({
+			value: specKey(props.type, row),
+			label: specOptionLabel(props.type, row),
+		})),
 );
+const preset = computed<SpecsRow | undefined>(() => {
+	if (!selectedPreset.value) return undefined;
+	return (store.value.list as SpecsRow[]).find(
+		(row) => specKey(props.type, row) === selectedPreset.value,
+	);
+});
+
+function specByValue(value: string): SpecsRow | undefined {
+	return (store.value.list as SpecsRow[]).find((row) => specKey(props.type, row) === value);
+}
 
 const presetSpecs = computed(() =>
 	Object.entries(preset.value ?? {})
@@ -38,9 +67,20 @@ function applyPreset(): void {
 
 watch(open, (isOpen) => {
 	if (!isOpen) return;
-	presetName.value = undefined;
+	selectedPreset.value = undefined;
+	searchTerm.value = '';
 	nameError.value = undefined;
+	presetFilter.value = { part: props.type, values: {} };
+	filterKey.value += 1;
 });
+
+watch(
+	() => props.type,
+	(type) => {
+		presetFilter.value = { part: type, values: {} };
+		filterKey.value += 1;
+	},
+);
 
 watch(
 	draft,
@@ -73,43 +113,75 @@ async function create(): Promise<void> {
 		:ui="{ content: 'max-w-5xl' }"
 	>
 		<template #body>
-			<div class="gap-6 grid grid-cols-[18rem_1fr]">
-				<aside class="flex flex-col gap-3 pr-6 border-default border-r min-w-0">
-					<span class="font-semibold text-highlighted text-sm">Start from an existing spec</span>
-
-					<USelectMenu
-						v-model="presetName"
-						:items="presetNames"
-						:placeholder="`Search ${PART_TYPE_META[type].label.toLowerCase()}s…`"
-						:search-input="{ placeholder: 'Search…' }"
-						virtualize
-						clear
-						class="w-full"
+			<div class="flex flex-col gap-4">
+				<div class="space-y-2 p-3 border border-default rounded-lg bg-elevated/40">
+					<span class="font-semibold text-highlighted text-sm">Filter preset specs</span>
+					<PartFilters
+						:key="filterKey"
+						:part="type"
+						layout="inline"
+						:exclude="['name']"
+						@change="presetFilter = $event"
 					/>
+				</div>
 
-					<template v-if="preset">
-						<dl class="space-y-1 pr-1 max-h-80 overflow-y-auto text-sm">
-							<div v-for="spec in presetSpecs" :key="spec.key" class="flex justify-between gap-3">
-								<dt class="text-muted shrink-0">{{ spec.label }}</dt>
-								<dd class="text-highlighted text-right break-all">{{ spec.value }}</dd>
-							</div>
-						</dl>
+				<div class="gap-6 grid grid-cols-[18rem_1fr]">
+					<aside class="flex flex-col gap-3 pr-6 border-default border-r min-w-0">
+						<span class="font-semibold text-highlighted text-sm">Start from an existing spec</span>
 
-						<UButton
-							icon="i-lucide-clipboard-paste"
-							color="neutral"
-							variant="subtle"
-							block
-							@click="applyPreset"
+						<USelectMenu
+							v-model="selectedPreset"
+							v-model:search-term="searchTerm"
+							:items="presetNames"
+							value-key="value"
+							:placeholder="`Search ${PART_TYPE_META[type].label.toLowerCase()}s…`"
+							:search-input="{ placeholder: 'Search…' }"
+							ignore-filter
+							virtualize
+							clear
+							class="w-full"
 						>
-							Apply to form
-						</UButton>
-					</template>
-				</aside>
+							<template #item="{ item }">
+								<UTooltip
+									:content="{ side: 'left', align: 'start' }"
+									:delay-duration="150"
+									:ui="{ content: 'h-auto max-w-xs p-3 text-sm' }"
+								>
+									<span class="truncate">{{ item.label }}</span>
+									<template #content>
+										<PartsSpecSummary :type="type" :spec="specByValue(item.value)" />
+									</template>
+								</UTooltip>
+							</template>
+						</USelectMenu>
+						<p v-if="presetRows.length === 0" class="text-muted text-xs">
+							No specs match these filters. Clear a filter to widen the list.
+						</p>
 
-				<div class="min-w-0">
-					<PartForm ref="form" v-model="draft" :type="type" />
-					<p v-if="nameError" class="mt-3 text-error text-sm">{{ nameError }}</p>
+						<template v-if="preset">
+							<dl class="space-y-1 pr-1 max-h-80 overflow-y-auto text-sm">
+								<div v-for="spec in presetSpecs" :key="spec.key" class="flex justify-between gap-3">
+									<dt class="text-muted shrink-0">{{ spec.label }}</dt>
+									<dd class="text-highlighted text-right break-all">{{ spec.value }}</dd>
+								</div>
+							</dl>
+
+							<UButton
+								icon="i-lucide-clipboard-paste"
+								color="neutral"
+								variant="subtle"
+								block
+								@click="applyPreset"
+							>
+								Apply to form
+							</UButton>
+						</template>
+					</aside>
+
+					<div class="min-w-0">
+						<PartForm ref="form" v-model="draft" :type="type" />
+						<p v-if="nameError" class="mt-3 text-error text-sm">{{ nameError }}</p>
+					</div>
 				</div>
 			</div>
 		</template>

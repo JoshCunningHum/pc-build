@@ -24,7 +24,8 @@ export interface PartFilterValues {
 		name?: string;
 		ddr?: string;
 		minSpeed?: number;
-		minModuleSize?: number;
+		moduleCount?: number;
+		moduleSize?: number;
 		maxCasLatency?: number;
 	};
 	storage: {
@@ -83,7 +84,7 @@ export type FilterField<TRow, TValues> =
 			get: (row: TRow) => string | string[] | undefined;
 	  }
 	| {
-			kind: 'min' | 'max';
+			kind: 'min' | 'max' | 'equals';
 			key: KeysMatching<TValues, number | undefined>;
 			label: string;
 			unit?: string;
@@ -162,9 +163,15 @@ export const PART_FILTER_FIELDS: {
 		{ kind: 'select', key: 'ddr', label: 'DDR', get: (row) => row.ddr },
 		{ kind: 'min', key: 'minSpeed', label: 'Min speed', unit: 'MT/s', get: (row) => row.speed },
 		{
-			kind: 'min',
-			key: 'minModuleSize',
-			label: 'Min module size',
+			kind: 'equals',
+			key: 'moduleCount',
+			label: 'Modules',
+			get: (row) => row.module_count,
+		},
+		{
+			kind: 'equals',
+			key: 'moduleSize',
+			label: 'Size per module',
 			unit: 'GB',
 			get: (row) => row.module_size,
 		},
@@ -257,8 +264,37 @@ export function filterOptionsFor(field: ErasedFilterField, rows: SpecsRow[]): st
 	return distinctStrings(rows, field.get);
 }
 
+/** Exact numeric choices, used by `equals` filters such as RAM module count and size. */
+export function numberFilterOptionsFor(field: ErasedFilterField, rows: SpecsRow[]): number[] {
+	const options = new Set<number>();
+	for (const row of rows) {
+		const value = field.get(row);
+		if (typeof value === 'number') options.add(value);
+	}
+	return [...options].toSorted((a, b) => a - b);
+}
+
 export function isFilterActive(filter: AnyPartFilter): boolean {
 	return Object.values(filter.values).some((value) => value !== undefined && value !== '');
+}
+
+/** Loose, typo-tolerant match: every whitespace-separated query word must be a subsequence of the target. */
+function fuzzyContains(needle: string, haystack: string): boolean {
+	let index = 0;
+	for (let i = 0; i < haystack.length && index < needle.length; i += 1) {
+		if (needle[index] === haystack[i]) index += 1;
+	}
+	return index === needle.length;
+}
+
+export function fuzzyMatch(query: string, text: string): boolean {
+	if (!query) return true;
+	const haystack = text.toLowerCase();
+	return query.split(/\\s+/).every((word) => {
+		if (!word) return true;
+		if (haystack.includes(word)) return true;
+		return fuzzyContains(word, haystack);
+	});
 }
 
 export function matchesFilter(filter: AnyPartFilter, row: SpecsRow): boolean {
@@ -271,8 +307,9 @@ export function matchesFilter(filter: AnyPartFilter, row: SpecsRow): boolean {
 		const actual = field.get(row);
 		switch (field.kind) {
 			case 'text': {
-				const query = String(wanted).toLowerCase();
-				if (typeof actual !== 'string' || !actual.toLowerCase().includes(query)) return false;
+				const query = String(wanted).toLowerCase().trim();
+				if (typeof actual !== 'string') return false;
+				if (!fuzzyMatch(query, actual)) return false;
 				break;
 			}
 			case 'select': {
@@ -286,6 +323,10 @@ export function matchesFilter(filter: AnyPartFilter, row: SpecsRow): boolean {
 			}
 			case 'max': {
 				if (typeof actual !== 'number' || actual > Number(wanted)) return false;
+				break;
+			}
+			case 'equals': {
+				if (typeof actual !== 'number' || actual !== Number(wanted)) return false;
 				break;
 			}
 			case 'boolean': {

@@ -1,7 +1,7 @@
 import type { Builds } from './build';
 
 export interface RuleProps<TParts extends Builds.PartType> {
-	build: Partial<Builds.BuildParts> & Pick<Required<Builds.BuildParts>, TParts>;
+	build: Partial<Builds.ResolvedParts> & Pick<Required<Builds.ResolvedParts>, TParts>;
 	issue: (severity: Issue['severity'], code: string, message: string) => Builds.BuildIssue;
 }
 

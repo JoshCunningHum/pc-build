@@ -2,10 +2,26 @@
 import type { AnyPartFilter, ErasedFilterField, FilterValue } from '~/constants/part-filters';
 import type { Builds } from '~/types/build';
 import type { SpecsRow } from '~/types/parts';
-import { filterFieldsFor, filterOptionsFor } from '~/constants/part-filters';
+import {
+	filterFieldsFor,
+	filterOptionsFor,
+	numberFilterOptionsFor,
+} from '~/constants/part-filters';
 import { SPECS_STORES } from '~/constants/parts';
 
-const props = defineProps<{ part: Builds.PartType }>();
+const props = withDefaults(
+	defineProps<{
+		part: Builds.PartType;
+		/** Field keys to leave out, e.g. `name` when the caller already has a search box. */
+		exclude?: string[];
+		/** `inline` for table toolbars, `grid`/`stack` for narrow dialog sidebars. */
+		layout?: 'inline' | 'grid' | 'stack';
+	}>(),
+	{
+		exclude: () => [],
+		layout: 'inline',
+	},
+);
 
 const emit = defineEmits<{
 	change: [filter: AnyPartFilter];
@@ -18,7 +34,9 @@ const BOOLEAN_ITEMS = [
 
 const values = ref<Record<string, FilterValue>>({});
 
-const fields = computed(() => filterFieldsFor(props.part));
+const fields = computed(() =>
+	filterFieldsFor(props.part).filter((field) => !props.exclude.includes(field.key)),
+);
 
 const rows = computed(() => SPECS_STORES[props.part]().list as SpecsRow[]);
 const optionsByKey = computed<Record<string, string[]>>(() =>
@@ -27,6 +45,41 @@ const optionsByKey = computed<Record<string, string[]>>(() =>
 			.filter((field) => field.kind === 'select')
 			.map((field) => [field.key, filterOptionsFor(field, rows.value)]),
 	),
+);
+
+const numberOptionsByKey = computed<Record<string, { label: string; value: number }[]>>(() =>
+	Object.fromEntries(
+		fields.value
+			.filter((field) => field.kind === 'equals')
+			.map((field) => [
+				field.key,
+				numberFilterOptionsFor(field, rows.value).map((value) => ({
+					label: field.unit ? `${value} ${field.unit}` : String(value),
+					value,
+				})),
+			]),
+	),
+);
+
+const rootClass = computed(
+	() =>
+		({
+			inline: 'flex flex-wrap items-center gap-2',
+			grid: 'grid grid-cols-2 gap-x-2 gap-y-3',
+			stack: 'flex flex-col gap-2',
+		})[props.layout],
+);
+
+const fieldWrapClass = computed(() =>
+	props.layout === 'inline' ? 'contents' : 'flex flex-col gap-1 min-w-0',
+);
+
+const clearClass = computed(() =>
+	props.layout === 'grid'
+		? 'col-span-2 justify-self-start'
+		: props.layout === 'stack'
+			? 'self-start'
+			: '',
 );
 
 const activeCount = computed(
@@ -74,14 +127,16 @@ watchDebounced(values, emitChange, { deep: true, debounce: 200, immediate: true 
 </script>
 
 <template>
-	<div class="flex flex-wrap items-center gap-2">
-		<template v-for="field in fields" :key="`${part}-${field.key}`">
+	<div :class="rootClass">
+		<div v-for="field in fields" :key="`${part}-${field.key}`" :class="fieldWrapClass">
+			<span v-if="layout !== 'inline'" class="text-muted text-xs">{{ field.label }}</span>
+
 			<UInput
 				v-if="field.kind === 'text'"
 				:model-value="stringValue(field)"
 				:placeholder="field.label"
 				icon="i-lucide-search"
-				class="w-56"
+				:class="layout === 'inline' ? 'w-56' : 'w-full'"
 				@update:model-value="setValue(field, $event)"
 			>
 				<template v-if="stringValue(field)" #trailing>
@@ -103,7 +158,19 @@ watchDebounced(values, emitChange, { deep: true, debounce: 200, immediate: true 
 				:placeholder="field.label"
 				:search-input="{ placeholder: `Search ${field.label.toLowerCase()}…` }"
 				clear
-				class="w-44"
+				:class="layout === 'inline' ? 'w-44' : 'w-full'"
+				@update:model-value="setValue(field, $event)"
+			/>
+
+			<USelectMenu
+				v-else-if="field.kind === 'equals'"
+				:model-value="numberValue(field)"
+				:items="numberOptionsByKey[field.key]"
+				:placeholder="field.label"
+				:search-input="false"
+				value-key="value"
+				clear
+				:class="layout === 'inline' ? 'w-40' : 'w-full'"
 				@update:model-value="setValue(field, $event)"
 			/>
 
@@ -115,7 +182,7 @@ watchDebounced(values, emitChange, { deep: true, debounce: 200, immediate: true 
 				:search-input="false"
 				value-key="value"
 				clear
-				class="w-44"
+				:class="layout === 'inline' ? 'w-44' : 'w-full'"
 				@update:model-value="setValue(field, $event)"
 			/>
 
@@ -124,16 +191,17 @@ watchDebounced(values, emitChange, { deep: true, debounce: 200, immediate: true 
 				:model-value="numberValue(field)"
 				:placeholder="numberPlaceholder(field)"
 				type="number"
-				class="w-40"
+				:class="layout === 'inline' ? 'w-40' : 'w-full'"
 				@update:model-value="setValue(field, $event)"
 			/>
-		</template>
+		</div>
 
 		<UButton
 			v-if="activeCount > 0"
 			icon="i-lucide-filter-x"
 			color="neutral"
 			variant="ghost"
+			:class="clearClass"
 			@click="reset"
 		>
 			Clear {{ activeCount }}

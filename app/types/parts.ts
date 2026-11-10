@@ -121,8 +121,8 @@ export namespace Parts {
 	export interface Base {
 		image?: string;
 		title: string;
-		link: string;
-		price: number;
+		link?: string;
+		price?: number;
 	}
 
 	export type CPU = Specs.CPU & Base;
@@ -147,3 +147,16 @@ export interface SpecsByPartType {
 }
 
 export type SpecsRow = SpecsByPartType[Builds.PartType];
+
+export interface PartsByPartType {
+	cpu: Parts.CPU;
+	cooler: Parts.CPUCooler;
+	motherboard: Parts.Motherboard;
+	memory: Parts.Memory;
+	storage: Parts.InternalHardDrive;
+	video_card: Parts.VideoCard;
+	case: Parts.Case;
+	psu: Parts.PowerSupply;
+}
+
+export type PartsRow = PartsByPartType[Builds.PartType];

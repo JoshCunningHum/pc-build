@@ -150,12 +150,15 @@ export const BUILD_RULES: RuleItem<Builds.PartType>[] = [
 	}),
 ];
 
-export function validateBuild(build: Builds.Build): Builds.BuildIssue[] {
+export function validateBuild(build: {
+	name: string;
+	parts: Builds.ResolvedParts;
+}): Builds.BuildIssue[] {
 	const issues: Builds.BuildIssue[] = [];
 	for (const rule of BUILD_RULES) {
 		if (rule.parts.some((part) => !build.parts[part])) continue;
 		const result = rule.rule({
-			build: build.parts as Required<Builds.BuildParts>,
+			build: build.parts as Required<Builds.ResolvedParts>,
 			issue: (severity, code, message) => createIssue(severity, code, message, rule.parts),
 		});
 		if (result) issues.push(result);
